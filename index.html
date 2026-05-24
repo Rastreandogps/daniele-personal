@@ -308,7 +308,8 @@ canvas{width:100%!important;}
       <div class="nav-item" onclick="navigate('pacotes')"><span class="nav-icon">📦</span>Pacotes</div>
     </nav>
     <div class="sidebar-footer">
-      <small style="color:var(--gray-mid);font-size:.75rem;">Daniele Oliveira · Personal 💪</small>
+      <small style="color:var(--gray-mid);font-size:.75rem;display:block;margin-bottom:10px;">Daniele Oliveira · Personal 💪</small>
+      <button class="btn-logout" style="color:#ff6b6b;border-color:rgba(220,53,69,.3);font-size:.8rem;" onclick="abrirResetModal()">🗑️ Apagar Todos os Dados</button>
     </div>
   </aside>
 
@@ -661,6 +662,31 @@ canvas{width:100%!important;}
   </div>
 </div>
 
+<!-- MODAL RESET -->
+<div class="modal-overlay" id="reset-modal" style="display:none;" onclick="closeModalOutside(event,'reset-modal')">
+  <div class="modal" style="max-width:400px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 style="color:#ff6b6b;">⚠️ Apagar Todos os Dados</h3>
+      <button class="close-btn" onclick="closeModal('reset-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.25);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;">
+        <p style="font-size:.88rem;color:#ff6b6b;font-weight:600;margin-bottom:6px;">⚠️ Atenção! Esta ação é irreversível.</p>
+        <p style="font-size:.82rem;color:var(--gray-mid);">Serão apagados permanentemente:<br>• Todos os alunos cadastrados<br>• Todos os agendamentos<br>• Todo o histórico financeiro<br>• Todo o histórico de frequência</p>
+      </div>
+      <div class="form-group">
+        <label>🔐 Digite a senha para confirmar</label>
+        <input type="password" id="reset-senha" placeholder="Senha de segurança" onkeydown="if(event.key==='Enter') confirmarReset()">
+      </div>
+      <p id="reset-erro" style="color:#ff6b6b;font-size:.82rem;margin-top:8px;display:none;">❌ Senha incorreta. Tente novamente.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('reset-modal')">Cancelar</button>
+      <button class="btn" style="background:rgba(220,53,69,.2);border:1px solid rgba(220,53,69,.4);color:#ff6b6b;" onclick="confirmarReset()">🗑️ Apagar Tudo</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -704,9 +730,34 @@ function saveAll() {
   save(STORAGE_KEYS.frequencia, frequencia);
 }
 
-// ═══════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════
+function abrirResetModal(){
+  document.getElementById('reset-senha').value='';
+  document.getElementById('reset-erro').style.display='none';
+  closeSidebar();
+  openModal('reset-modal');
+  setTimeout(()=>document.getElementById('reset-senha').focus(),300);
+}
+
+function confirmarReset(){
+  const senha = document.getElementById('reset-senha').value;
+  if(senha !== '10203040'){
+    document.getElementById('reset-erro').style.display='block';
+    document.getElementById('reset-senha').value='';
+    document.getElementById('reset-senha').focus();
+    return;
+  }
+  // Apagar tudo
+  clientes = [];
+  agendamentos = [];
+  financeiro = {};
+  frequencia = {};
+  saveAll();
+  closeModal('reset-modal');
+  showToast('✅ Todos os dados foram apagados.','error');
+  navigate('dashboard');
+}
+
+
 const pages = {
   dashboard: renderDashboard,
   clientes: renderClientes,
