@@ -1921,6 +1921,19 @@ document.addEventListener('input', e => {
 });
 
 // Verificar vencimentos ao abrir o app
+// Verifica automaticamente se algum aluno deve virar Pendente (3 dias antes do venc)
+function verificarVencimentos(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let mudou = false;
+  clientes.forEach(c=>{
+    if(c.statusPag!=='pago' || !c.dataVenc) return;
+    const venc = new Date(c.dataVenc+'T12:00:00');
+    const diff = Math.ceil((venc - hoje)/(1000*60*60*24));
+    if(diff<=3){ c.statusPag='pendente'; c.dataVenc=null; mudou=true; }
+  });
+  if(mudou) saveAll();
+}
+
 verificarVencimentos();
 
 // Inicializar direto no dashboard
