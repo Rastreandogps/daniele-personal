@@ -997,9 +997,11 @@ function editCliente(id){
 }
 
 function deleteCliente(id){
-  if(!confirm('Remover este aluno?')) return;
+  if(!confirm('Remover este aluno? Todos os agendamentos dele também serão excluídos.')) return;
   clientes = clientes.filter(c=>c.id!==id);
-  saveAll(); renderClientes(); showToast('Aluno removido.','error');
+  agendamentos = agendamentos.filter(a=>a.clienteId!==id);
+  delete financeiro[id];
+  saveAll(); renderClientes(); showToast('Aluno e agendamentos removidos.','error');
 }
 
 // ═══════════════════════════════
