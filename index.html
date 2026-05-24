@@ -815,7 +815,8 @@ function renderDashboard(){
                 <div class="acord-name">${c.nome}</div>
                 <div class="acord-sub">Próx: ${fmtData(proxAula.data)} às ${proxAula.hora} · ${totalAulas} aula${totalAulas>1?'s':''}</div>
               </div>
-              <span class="acord-arrow" id="arrow-acord-${idx}">▼</span>
+              <button class="btn btn-danger btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();deleteTodosAgendamentos('${entry.clienteId}','${c.nome}')" title="Apagar todos os agendamentos">🗑️</button>
+              <span class="acord-arrow" id="arrow-acord-${idx}" style="margin-left:8px;">▼</span>
             </div>
             <div class="acord-body" id="acord-${idx}">
               ${entry.aulas.slice(0,10).map(a=>`
@@ -823,6 +824,7 @@ function renderDashboard(){
                 <div class="acord-aula-time"><div class="at-h">${a.hora}</div><div class="at-d">${fmtData(a.data)}</div></div>
                 <span style="font-size:.78rem;color:var(--gray-mid);flex:1;">${a.obs||'Treino agendado'}</span>
                 <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteAgendamentoDash('${a.id}')" title="Apagar esta aula">🗑️</button>
               </div>`).join('')}
               ${totalAulas>10?`<div style="font-size:.75rem;color:var(--gray-mid);padding:6px 0;">+${totalAulas-10} mais aulas agendadas</div>`:''}
             </div>
@@ -862,6 +864,18 @@ function toggleAcord(id, header){
   const isOpen = body.classList.contains('open');
   body.classList.toggle('open', !isOpen);
   if(arrow) arrow.classList.toggle('open', !isOpen);
+}
+
+function deleteTodosAgendamentos(clienteId, nome){
+  if(!confirm(`⚠️ Quer apagar TODOS os agendamentos de ${nome}?`)) return;
+  agendamentos = agendamentos.filter(a=>a.clienteId!==clienteId);
+  saveAll(); renderDashboard(); showToast(`Todos os agendamentos de ${nome} foram removidos.`,'error');
+}
+
+function deleteAgendamentoDash(agId){
+  if(!confirm('Apagar este agendamento?')) return;
+  agendamentos = agendamentos.filter(a=>a.id!==agId);
+  saveAll(); renderDashboard(); showToast('Agendamento removido.','error');
 }
 
 // ═══════════════════════════════
