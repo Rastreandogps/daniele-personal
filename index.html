@@ -802,7 +802,7 @@ function renderDashboard(){
   });
 
   document.getElementById('page-content').innerHTML = `
-  <div class="grid-2" style="margin-bottom:24px;">
+  <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:24px;">
     <div class="card">
       <div class="section-title"><h3>🏃‍♀️ Aulas de Hoje — ${fmtData(today)}</h3></div>
       ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhuma aula agendada para hoje</p></div>':
