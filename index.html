@@ -943,19 +943,6 @@ function renderClientes(){
 }
 
 
-// ── Calcula próxima data de vencimento a partir de hoje + diaVenc
-function calcProxVenc(diaVenc, antecipado=false){
-  const hoje = new Date();
-  let ano = hoje.getFullYear();
-  let mes = hoje.getMonth(); // 0-based
-  // Se antecipado, pula para o mês seguinte ao próximo
-  if(antecipado) mes += 1;
-  // Próximo vencimento: mês atual ou seguinte dependendo se já passou o dia
-  let dataVenc = new Date(ano, mes, diaVenc);
-  if(dataVenc <= hoje) dataVenc = new Date(ano, mes+1, diaVenc);
-  return dataVenc.toISOString().split('T')[0];
-}
-
 // ── Verifica automaticamente se algum aluno deve virar Pendente (3 dias antes do venc)
 function verificarVencimentos(){
   const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -975,8 +962,8 @@ function verificarVencimentos(){
 function togglePagamentoCard(id){
   const c = clientes.find(x=>x.id===id); if(!c) return;
 
+  // ── Está PAGO → voltar para Pendente (com confirmação)
   if(c.statusPag==='pago'){
-    // Proteção contra clique acidental
     if(!confirm(`⚠️ Deseja marcar ${c.nome} como PENDENTE?\n\nIsso irá cancelar o controle de vencimento atual.`)) return;
     c.statusPag='pendente';
     c.dataVenc=null;
@@ -985,34 +972,18 @@ function togglePagamentoCard(id){
     return;
   }
 
-  // Está Pendente → marcar como Pago
+  // ── Está PENDENTE → marcar como Pago
   const diaVenc = parseInt(c.venc)||10;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const diaHoje = hoje.getDate();
 
-  // Verificar se está pagando antes do vencimento deste mês
-  const vencEsteMes = new Date(hoje.getFullYear(), hoje.getMonth(), diaVenc);
-  vencEsteMes.setHours(0,0,0,0);
-  const isPagamentoAdiantado = hoje < vencEsteMes;
-
-  let dataVenc;
-  if(isPagamentoAdiantado){
-    const resp = confirm(
-      `📅 Pagamento antecipado detectado!\n\n` +
-      `O vencimento deste aluno é dia ${diaVenc} e ainda faltam ${Math.ceil((vencEsteMes-hoje)/(1000*60*60*24))} dia(s).\n\n` +
-      `✅ OK → Considerar como pagamento do mês atual\n` +
-      `   (próximo vencimento: dia ${diaVenc} do mês seguinte)\n\n` +
-      `❌ Cancelar → Não registrar pagamento agora`
-    );
-    if(!resp) return;
-    // Pago adiantado = vence no próximo mês normalmente
-    const proxMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, diaVenc);
-    dataVenc = proxMes.toISOString().split('T')[0];
-  } else {
-    // Pagamento normal (no mês ou após vencimento)
-    const proxMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, diaVenc);
-    dataVenc = proxMes.toISOString().split('T')[0];
+  // Próximo vencimento = próxima ocorrência do diaVenc a partir de amanhã
+  let proxVenc = new Date(hoje.getFullYear(), hoje.getMonth(), diaVenc);
+  proxVenc.setHours(0,0,0,0);
+  // Se o dia de vencimento deste mês já passou ou é hoje, vai para o mês seguinte
+  if(proxVenc <= hoje){
+    proxVenc = new Date(hoje.getFullYear(), hoje.getMonth()+1, diaVenc);
   }
+  const dataVenc = proxVenc.toISOString().split('T')[0];
 
   c.statusPag='pago';
   c.dataVenc=dataVenc;
