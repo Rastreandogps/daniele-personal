@@ -792,14 +792,20 @@ function renderDashboard(){
   const inadim = clientes.filter(c=>c.statusPag==='pendente').length;
   const agsHoje = agendamentos.filter(a=>a.data===today);
   const receitaMes = clientes.filter(c=>c.statusPag==='pago').reduce((s,c)=>s+parseFloat(c.valor||0),0);
-  const proxAll = agendamentos.filter(a=>a.data>=today).sort((a,b)=>a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora));
-  // Agrupar por aluno, mantendo ordem da próxima aula de cada um
+  // Só agendamentos de AMANHÃ em diante (hoje fica no bloco "Aulas de Hoje")
+  const proxAll = agendamentos.filter(a=>a.data>today).sort((a,b)=>a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora));
+  // Agrupar por aluno
   const proxPorAluno = [];
   proxAll.forEach(a=>{
     const entry = proxPorAluno.find(x=>x.clienteId===a.clienteId);
     if(entry){ entry.aulas.push(a); }
     else { proxPorAluno.push({clienteId:a.clienteId, aulas:[a]}); }
   });
+  const diasSemanaLabel = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  function nomeDiaSemana(dateStr){
+    const [y,m,d] = dateStr.split('-').map(Number);
+    return diasSemanaLabel[new Date(y,m-1,d).getDay()];
+  }
 
   document.getElementById('page-content').innerHTML = `
   <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:24px;">
@@ -810,7 +816,7 @@ function renderDashboard(){
           const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
           return `<div class="upcoming-item">
             <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
-            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
+            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${nomeDiaSemana(a.data)}</div></div>
             <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
           </div>`;
         }).join('')
@@ -818,7 +824,7 @@ function renderDashboard(){
     </div>
     <div class="card card-proximas">
       <div class="section-title"><h3>🕐 Próximas Aulas</h3></div>
-      ${proxPorAluno.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento próximo</p></div>':
+      ${proxPorAluno.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento futuro</p></div>':
         proxPorAluno.map((entry,idx)=>{
           const c = clientes.find(x=>x.id===entry.clienteId)||{nome:'?'};
           const inicial = c.nome.charAt(0).toUpperCase();
@@ -829,7 +835,7 @@ function renderDashboard(){
               <div class="acord-avatar">${inicial}</div>
               <div class="acord-info">
                 <div class="acord-name">${c.nome}</div>
-                <div class="acord-sub">Próx: ${fmtData(proxAula.data)} às ${proxAula.hora} · ${totalAulas} aula${totalAulas>1?'s':''}</div>
+                <div class="acord-sub">Próx: ${nomeDiaSemana(proxAula.data)}, ${fmtData(proxAula.data)} às ${proxAula.hora} · ${totalAulas} aula${totalAulas>1?'s':''}</div>
               </div>
               <button class="btn btn-danger btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();deleteTodosAgendamentos('${entry.clienteId}','${c.nome}')" title="Apagar todos">🗑️</button>
               <span class="acord-arrow" id="arrow-acord-${idx}" style="margin-left:8px;">▼</span>
@@ -837,8 +843,8 @@ function renderDashboard(){
             <div class="acord-body" id="acord-${idx}">
               ${entry.aulas.slice(0,10).map(a=>`
               <div class="acord-aula">
-                <div class="acord-aula-time"><div class="at-h">${a.hora}</div><div class="at-d">${fmtData(a.data)}</div></div>
-                <span style="font-size:.78rem;color:var(--gray-mid);flex:1;">${a.obs||'Treino agendado'}</span>
+                <div class="acord-aula-time"><div class="at-h">${a.hora}</div><div class="at-d" style="white-space:nowrap;">${nomeDiaSemana(a.data).slice(0,3)}, ${fmtData(a.data)}</div></div>
+                <span style="font-size:.78rem;color:var(--pink-light);flex:1;font-weight:500;">${nomeDiaSemana(a.data)}</span>
                 <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteAgendamentoDash('${a.id}')">🗑️</button>
               </div>`).join('')}
