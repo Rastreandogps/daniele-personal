@@ -1666,53 +1666,85 @@ function togglePagamento(id,status){
 // ═══════════════════════════════
 function renderFaltas(){
   const today=todayStr();
-  const agsHoje=agendamentos.filter(a=>a.data===today);
+  const agsHoje=agendamentos.filter(a=>a.data===today).sort((a,b)=>a.hora.localeCompare(b.hora));
+  const diasSemLabel=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+  const statusConfig = {
+    presente: {label:'Presente',     emoji:'✅', cls:'badge-green',  cor:'#6fcf97'},
+    fj:       {label:'Falta Justif.',emoji:'📋', cls:'badge-yellow', cor:'#ffd700'},
+    fn:       {label:'Falta Injust.',emoji:'❌', cls:'badge-red',    cor:'#ff6b6b'},
+    reposta:  {label:'Reposta',      emoji:'🔄', cls:'badge-blue',   cor:'#74b9ff'},
+    perdida:  {label:'Perdida',      emoji:'💀', cls:'badge-red',    cor:'#ff6b6b'},
+    pendente: {label:'Pendente',     emoji:'⏳', cls:'badge-blue',   cor:'#8C8C8C'},
+  };
+
   document.getElementById('page-content').innerHTML=`
   <div class="card" style="margin-bottom:18px;">
     <div class="section-title"><h3>✅ Frequência de Hoje — ${fmtData(today)}</h3></div>
-    <div class="att-legend">
-      <span><span class="att-dot att-p"></span> Presente</span>
-      <span><span class="att-dot att-fj"></span> Falta Justificada</span>
-      <span><span class="att-dot att-fn"></span> Falta Não Justificada</span>
-      <span><span class="att-dot att-r"></span> Aula Reposta</span>
-      <span><span class="att-dot att-pd"></span> Aula Perdida</span>
-    </div>
-    ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento para hoje</p></div>':
-      `<div class="table-wrap"><table>
-        <thead><tr><th>Aluno</th><th>Horário</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody>${agsHoje.map(a=>{
+
+    ${agsHoje.length===0
+      ?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento para hoje</p></div>'
+      :agsHoje.map(a=>{
           const c=clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
           const key=`${today}_${a.id}`;
           const status=frequencia[key]||'pendente';
-          const statusLabel={presente:'✓ Presente',fj:'📋 Falta Justificada',fn:'✗ Falta Não Justificada',reposta:'🔄 Reposta',perdida:'❌ Perdida',pendente:'—'};
-          return `<tr>
-            <td>${c.nome}</td><td>${a.hora}</td>
-            <td><span class="badge ${status==='presente'?'badge-green':status==='pendente'?'badge-blue':status==='fj'?'badge-yellow':status==='reposta'?'badge-blue':'badge-red'}">${statusLabel[status]||status}</span></td>
-            <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
-              <button class="btn btn-success btn-sm" onclick="setFreq('${key}','presente')">✓</button>
-              <button class="btn btn-secondary btn-sm" onclick="setFreq('${key}','fj')">FJ</button>
-              <button class="btn btn-danger btn-sm" onclick="setFreq('${key}','fn')">FN</button>
-              <button class="btn btn-secondary btn-sm" onclick="setFreq('${key}','reposta')">↩️</button>
-              <button class="btn btn-danger btn-sm" onclick="setFreq('${key}','perdida')">❌</button>
-            </div></td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>`
+          const sc=statusConfig[status]||statusConfig.pendente;
+          const inicial=c.nome.charAt(0).toUpperCase();
+          return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--magenta),var(--pink));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;">${inicial}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:.95rem;">${c.nome}</div>
+                <div style="font-size:.75rem;color:var(--gray-mid);">${a.hora} · ${diasSemLabel[new Date(today+'T12:00:00').getDay()]}</div>
+              </div>
+              <span class="badge ${sc.cls}" style="font-size:.75rem;">${sc.emoji} ${sc.label}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-sm" style="flex:1;justify-content:center;background:rgba(40,167,69,.15);border:1px solid rgba(40,167,69,.3);color:#6fcf97;${status==='presente'?'outline:2px solid #6fcf97;':''}" onclick="setFreq('${key}','presente')">✅ Presente</button>
+              <button class="btn btn-sm" style="flex:1;justify-content:center;background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.3);color:#ffd700;${status==='fj'?'outline:2px solid #ffd700;':''}" onclick="setFreq('${key}','fj')">📋 F. Justif.</button>
+              <button class="btn btn-sm" style="flex:1;justify-content:center;background:rgba(220,53,69,.15);border:1px solid rgba(220,53,69,.3);color:#ff6b6b;${status==='fn'?'outline:2px solid #ff6b6b;':''}" onclick="setFreq('${key}','fn')">❌ F. Injust.</button>
+              <button class="btn btn-sm" style="flex:1;justify-content:center;background:rgba(0,123,255,.1);border:1px solid rgba(0,123,255,.3);color:#74b9ff;${status==='reposta'?'outline:2px solid #74b9ff;':''}" onclick="setFreq('${key}','reposta')">🔄 Reposta</button>
+              <button class="btn btn-sm" style="flex:1;justify-content:center;background:rgba(220,53,69,.1);border:1px solid rgba(220,53,69,.2);color:#ff6b6b;${status==='perdida'?'outline:2px solid #ff6b6b;':''}" onclick="setFreq('${key}','perdida')">💀 Perdida</button>
+            </div>
+          </div>`;
+        }).join('')
     }
   </div>
+
   <div class="card">
-    <div class="section-title"><h3>📊 Histórico de Frequência por Aluno</h3></div>
-    ${clientes.length===0?'<div class="empty-state"><div class="es-icon">👥</div><p>Nenhum aluno cadastrado</p></div>':
-      `<div class="table-wrap"><table>
-        <thead><tr><th>Aluno</th><th>Presentes</th><th>Faltas</th><th>Repostas</th></tr></thead>
-        <tbody>${clientes.map(c=>{
-          const agsAluno=agendamentos.filter(a=>a.clienteId===c.id).map(a=>`${a.data}_${a.id}`);
-          const pres=agsAluno.filter(k=>frequencia[k]==='presente').length;
-          const faltas=agsAluno.filter(k=>['fn','fj','perdida'].includes(frequencia[k])).length;
-          const repos=agsAluno.filter(k=>frequencia[k]==='reposta').length;
-          return `<tr><td>${c.nome}</td><td style="color:#6fcf97;">${pres}</td><td style="color:#ff6b6b;">${faltas}</td><td style="color:#74b9ff;">${repos}</td></tr>`;
-        }).join('')}</tbody>
-      </table></div>`
+    <div class="section-title"><h3>📊 Resumo por Aluno</h3></div>
+    ${clientes.length===0
+      ?'<div class="empty-state"><div class="es-icon">👥</div><p>Nenhum aluno cadastrado</p></div>'
+      :clientes.map(c=>{
+          const agsAluno=agendamentos.filter(a=>a.clienteId===c.id).map(a=>({key:`${a.data}_${a.id}`,data:a.data}));
+          const total=agsAluno.length;
+          const pres=agsAluno.filter(x=>frequencia[x.key]==='presente').length;
+          const faltas=agsAluno.filter(x=>['fn','fj','perdida'].includes(frequencia[x.key])).length;
+          const repos=agsAluno.filter(x=>frequencia[x.key]==='reposta').length;
+          const pct=total>0?Math.round((pres/total)*100):0;
+          const inicial=c.nome.charAt(0).toUpperCase();
+          return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--magenta),var(--pink));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;">${inicial}</div>
+              <div style="flex:1;">
+                <div style="font-weight:700;">${c.nome}</div>
+                <div style="font-size:.72rem;color:var(--gray-mid);">${total} aula${total!==1?'s':''} registrada${total!==1?'s':''}</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:1.2rem;font-weight:700;color:${pct>=75?'#6fcf97':pct>=50?'#ffd700':'#ff6b6b'};">${pct}%</div>
+                <div style="font-size:.65rem;color:var(--gray-mid);">presença</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:space-around;text-align:center;">
+              <div><div style="font-size:1.1rem;font-weight:700;color:#6fcf97;">${pres}</div><div style="font-size:.68rem;color:var(--gray-mid);">Presentes</div></div>
+              <div><div style="font-size:1.1rem;font-weight:700;color:#ff6b6b;">${faltas}</div><div style="font-size:.68rem;color:var(--gray-mid);">Faltas</div></div>
+              <div><div style="font-size:1.1rem;font-weight:700;color:#74b9ff;">${repos}</div><div style="font-size:.68rem;color:var(--gray-mid);">Repostas</div></div>
+            </div>
+            <div style="background:var(--card);border-radius:20px;height:6px;overflow:hidden;margin-top:10px;">
+              <div style="height:100%;border-radius:20px;background:linear-gradient(90deg,var(--magenta),var(--pink-light));width:${pct}%;transition:width .5s;"></div>
+            </div>
+          </div>`;
+        }).join('')
     }
   </div>`;
 }
