@@ -911,6 +911,7 @@ function renderClientes(){
         : (c.dias||[]).join(' · ')) || '—';
       const inicial = c.nome.charAt(0).toUpperCase();
       const isPago = c.statusPag==='pago';
+      const vencStr = c.dataVenc ? `Vence ${fmtData(c.dataVenc)}` : (c.venc?`Todo dia ${c.venc}`:'');
       return `<div class="aluno-card">
         <div class="aluno-card-top">
           <div class="aluno-avatar">${inicial}</div>
@@ -923,6 +924,7 @@ function renderClientes(){
             <button class="badge ${isPago?'badge-green':'badge-red'}" style="cursor:pointer;border:none;font-size:.78rem;padding:5px 12px;border-radius:20px;font-family:'DM Sans',sans-serif;font-weight:600;" onclick="togglePagamentoCard('${c.id}')">
               ${isPago?'✓ Pago':'⏳ Pendente'}
             </button>
+            ${vencStr?`<div style="font-size:.6rem;color:var(--gray-mid);margin-top:3px;">${vencStr}</div>`:''}
           </div>
         </div>
         <div class="aluno-card-details">
@@ -933,7 +935,7 @@ function renderClientes(){
         <div class="aluno-card-actions">
           <button class="btn btn-secondary btn-sm" onclick="openClienteDetail('${c.id}')">📋 Ficha</button>
           <button class="btn btn-secondary btn-sm" onclick="editCliente('${c.id}')">✏️ Editar</button>
-          <button class="btn btn-whatsapp btn-sm" onclick="lembreteCobranca('${c.id}')" title="Lembrete de mensalidade">💬 Cobrar</button>
+          ${!isPago?`<button class="btn btn-whatsapp btn-sm" onclick="lembreteCobranca('${c.id}')">💬 Cobrar</button>`:''}
           <button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')">🗑️</button>
         </div>
       </div>`;
@@ -941,19 +943,90 @@ function renderClientes(){
 }
 
 
+// ── Calcula próxima data de vencimento a partir de hoje + diaVenc
+function calcProxVenc(diaVenc, antecipado=false){
+  const hoje = new Date();
+  let ano = hoje.getFullYear();
+  let mes = hoje.getMonth(); // 0-based
+  // Se antecipado, pula para o mês seguinte ao próximo
+  if(antecipado) mes += 1;
+  // Próximo vencimento: mês atual ou seguinte dependendo se já passou o dia
+  let dataVenc = new Date(ano, mes, diaVenc);
+  if(dataVenc <= hoje) dataVenc = new Date(ano, mes+1, diaVenc);
+  return dataVenc.toISOString().split('T')[0];
+}
+
+// ── Verifica automaticamente se algum aluno deve virar Pendente (3 dias antes do venc)
+function verificarVencimentos(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let mudou = false;
+  clientes.forEach(c=>{
+    if(c.statusPag!=='pago' || !c.dataVenc) return;
+    const venc = new Date(c.dataVenc+'T12:00:00');
+    const diff = Math.ceil((venc - hoje)/(1000*60*60*24));
+    if(diff<=3){
+      c.statusPag='pendente';
+      mudou=true;
+    }
+  });
+  if(mudou){ saveAll(); }
+}
+
 function togglePagamentoCard(id){
   const c = clientes.find(x=>x.id===id); if(!c) return;
-  const novoStatus = c.statusPag==='pago' ? 'pendente' : 'pago';
-  if(novoStatus==='pago'){
-    if(!financeiro[id]) financeiro[id]=[];
-    const mesAtual = todayStr().slice(0,7);
-    const jaTemNesteMes = financeiro[id].some(p=>p.data && p.data.slice(0,7)===mesAtual && p.desc==='Mensalidade');
-    if(!jaTemNesteMes) financeiro[id].push({data:todayStr(),desc:'Mensalidade',valor:c.valor});
+
+  if(c.statusPag==='pago'){
+    // Proteção contra clique acidental
+    if(!confirm(`⚠️ Deseja marcar ${c.nome} como PENDENTE?\n\nIsso irá cancelar o controle de vencimento atual.`)) return;
+    c.statusPag='pendente';
+    c.dataVenc=null;
+    saveAll(); renderClientes();
+    showToast(`⏳ ${c.nome} marcado como pendente.`,'error');
+    return;
   }
-  c.statusPag = novoStatus;
+
+  // Está Pendente → marcar como Pago
+  const diaVenc = parseInt(c.venc)||10;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const diaHoje = hoje.getDate();
+
+  // Verificar se está pagando antes do vencimento deste mês
+  const vencEsteMes = new Date(hoje.getFullYear(), hoje.getMonth(), diaVenc);
+  vencEsteMes.setHours(0,0,0,0);
+  const isPagamentoAdiantado = hoje < vencEsteMes;
+
+  let dataVenc;
+  if(isPagamentoAdiantado){
+    const resp = confirm(
+      `📅 Pagamento antecipado detectado!\n\n` +
+      `O vencimento deste aluno é dia ${diaVenc} e ainda faltam ${Math.ceil((vencEsteMes-hoje)/(1000*60*60*24))} dia(s).\n\n` +
+      `✅ OK → Considerar como pagamento do mês atual\n` +
+      `   (próximo vencimento: dia ${diaVenc} do mês seguinte)\n\n` +
+      `❌ Cancelar → Não registrar pagamento agora`
+    );
+    if(!resp) return;
+    // Pago adiantado = vence no próximo mês normalmente
+    const proxMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, diaVenc);
+    dataVenc = proxMes.toISOString().split('T')[0];
+  } else {
+    // Pagamento normal (no mês ou após vencimento)
+    const proxMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, diaVenc);
+    dataVenc = proxMes.toISOString().split('T')[0];
+  }
+
+  c.statusPag='pago';
+  c.dataVenc=dataVenc;
+
+  // Registrar no histórico financeiro
+  if(!financeiro[id]) financeiro[id]=[];
+  const mesAtual = todayStr().slice(0,7);
+  const jaTemNesteMes = financeiro[id].some(p=>p.data && p.data.slice(0,7)===mesAtual && p.desc==='Mensalidade');
+  if(!jaTemNesteMes) financeiro[id].push({data:todayStr(),desc:'Mensalidade',valor:c.valor});
+
   saveAll(); renderClientes();
-  showToast(novoStatus==='pago'?`✅ ${c.nome} marcado como pago!`:`⏳ ${c.nome} marcado como pendente.`);
+  showToast(`✅ ${c.nome} pago! Próximo vencimento: ${fmtData(dataVenc)}`);
 }
+
 
 function lembreteCobranca(id){
   const c = clientes.find(x=>x.id===id); if(!c) return;
@@ -1705,6 +1778,9 @@ function renderPacotes(){
 document.addEventListener('input', e => {
   if(e.target.id==='m-peso' || e.target.id==='m-altura') calcIMC();
 });
+
+// Verificar vencimentos ao abrir o app
+verificarVencimentos();
 
 // Inicializar direto no dashboard
 navigate('dashboard');
