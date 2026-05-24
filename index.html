@@ -248,6 +248,7 @@ canvas{width:100%!important;}
   .search-bar{width:100%;}
   .topbar{flex-wrap:wrap;gap:10px;}
   .measure-grid{grid-template-columns:repeat(2,1fr);}
+  .card-proximas{order:-1;}
 }
 </style>
 </head>
@@ -765,13 +766,13 @@ function renderDashboard(){
     </div>
   </div>
   <div class="grid-2">
-    <div class="card">
-      <div class="section-title"><h3>🏃‍♀️ Aulas de Hoje — ${fmtData(today)}</h3></div>
-      ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhuma aula agendada para hoje</p></div>':
-        agsHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>{
+    <div class="card card-proximas">
+      <div class="section-title"><h3>🕐 Próximas Aulas</h3></div>
+      ${prox.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento próximo</p></div>':
+        prox.map(a=>{
           const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
           return `<div class="upcoming-item">
-            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
+            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">${fmtData(a.data)}</div></div>
             <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
             <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
           </div>`;
@@ -779,12 +780,12 @@ function renderDashboard(){
       }
     </div>
     <div class="card">
-      <div class="section-title"><h3>🕐 Próximas Aulas</h3></div>
-      ${prox.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento próximo</p></div>':
-        prox.map(a=>{
+      <div class="section-title"><h3>🏃‍♀️ Aulas de Hoje — ${fmtData(today)}</h3></div>
+      ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhuma aula agendada para hoje</p></div>':
+        agsHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>{
           const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
           return `<div class="upcoming-item">
-            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">${fmtData(a.data)}</div></div>
+            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
             <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
             <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
           </div>`;
