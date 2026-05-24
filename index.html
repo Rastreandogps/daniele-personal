@@ -30,7 +30,7 @@
   --radius-sm: 10px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);min-height:100vh;overflow-x:hidden;}
+body{font-family:sans-serif;background:var(--bg);color:var(--white);min-height:100vh;overflow-x:hidden;}
 h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 
 /* ── SCROLLBAR ── */
@@ -956,64 +956,87 @@ function deleteAgendamentoDash(agId){
 // ═══════════════════════════════
 let clientesFiltrados = null;
 
-function renderClientes(){
-  const lista = clientesFiltrados || clientes;
-  document.getElementById('page-content').innerHTML = lista.length===0?`
-    <div class="card">
-      <div class="empty-state"><div class="es-icon">👤</div><p>Nenhum aluno cadastrado ainda.<br>Clique em "+ Novo Aluno" para começar!</p></div>
-    </div>`:
-    `<div class="alunos-grid">${lista.map(c=>{
-      const diasStr = ((c.diasHorarios||[]).length>0
-        ? c.diasHorarios.map(x=>x.hora?`${x.dia} ${x.hora}`:x.dia).join(' · ')
-        : (c.dias||[]).join(' · ')) || '—';
-      const inicial = c.nome.charAt(0).toUpperCase();
-      const isPago = c.statusPag==='pago';
-      const vencStr = c.dataVenc ? `Vence ${fmtData(c.dataVenc)}` : (c.venc?`Todo dia ${c.venc}`:'');
-      return `<div class="aluno-card">
-        <div class="aluno-card-top">
-          <div class="aluno-avatar">${inicial}</div>
-          <div class="aluno-card-info">
-            <div class="aluno-card-nome">${c.nome}</div>
-            <div class="aluno-card-tel">${c.tel||'—'}</div>
-          </div>
-          <div style="margin-left:auto;flex-shrink:0;text-align:center;">
-            <div style="font-size:.62rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Pagamento</div>
-            <button class="badge ${isPago?'badge-green':'badge-red'}" style="cursor:pointer;border:none;font-size:.78rem;padding:5px 12px;border-radius:20px;font-family:'DM Sans',sans-serif;font-weight:600;" onclick="togglePagamentoCard('${c.id}')">
-              ${isPago?'✓ Pago':'⏳ Pendente'}
-            </button>
-            ${vencStr?`<div style="font-size:.6rem;color:var(--gray-mid);margin-top:3px;">${vencStr}</div>`:''}
-          </div>
+function renderCardAluno(c){
+  try {
+    const id = c.id;
+    const diasStr = ((c.diasHorarios||[]).length>0
+      ? c.diasHorarios.map(x=>x&&x.hora?x.dia+' '+x.hora:(x&&x.dia||'')).join(' · ')
+      : (c.dias||[]).join(' · ')) || '—';
+    const nome = c.nome || '(sem nome)';
+    const inicial = nome.charAt(0).toUpperCase();
+    const isPago = c.statusPag==='pago';
+    const vencStr = c.dataVenc ? 'Vence '+fmtData(c.dataVenc) : (c.venc?'Todo dia '+c.venc:'');
+    const badgeCls = isPago ? 'badge-green' : 'badge-red';
+    const badgeTxt = isPago ? '✓ Pago' : '⏳ Pendente';
+    const div = document.createElement('div');
+    div.className = 'aluno-card';
+    div.innerHTML = `
+      <div class="aluno-card-top">
+        <div class="aluno-avatar">${inicial}</div>
+        <div class="aluno-card-info">
+          <div class="aluno-card-nome">${nome}</div>
+          <div class="aluno-card-tel">${c.tel||'—'}</div>
         </div>
-        <div class="aluno-card-details">
-          <div class="aluno-detail-item"><span class="aluno-detail-label">Plano</span><span>${c.plano||'—'}</span></div>
-          <div class="aluno-detail-item"><span class="aluno-detail-label">Mensalidade</span><span style="color:#6fcf97;font-weight:600;">${fmtMoeda(c.valor)}</span></div>
-          <div class="aluno-detail-item" style="grid-column:1/-1;"><span class="aluno-detail-label">Dias & Horários</span><span style="font-size:.78rem;">${diasStr}</span></div>
+        <div style="margin-left:auto;flex-shrink:0;text-align:center;">
+          <div style="font-size:.62rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Pagamento</div>
+          <button class="badge ${badgeCls}" style="cursor:pointer;border:none;font-size:.78rem;padding:5px 12px;border-radius:20px;font-weight:600;" data-action="pag">
+            ${badgeTxt}
+          </button>
+          ${vencStr?`<div style="font-size:.6rem;color:var(--gray-mid);margin-top:3px;">${vencStr}</div>`:''}
         </div>
-        <div class="aluno-card-actions">
-          <button class="btn btn-secondary btn-sm" onclick="openClienteDetail('${c.id}')">📋 Ficha</button>
-          <button class="btn btn-secondary btn-sm" onclick="editCliente('${c.id}')">✏️ Editar</button>
-          ${!isPago?`<button class="btn btn-whatsapp btn-sm" onclick="lembreteCobranca('${c.id}')">💬 Cobrar</button>`:''}
-          <button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')">🗑️</button>
-        </div>
+      </div>
+      <div class="aluno-card-details">
+        <div class="aluno-detail-item"><span class="aluno-detail-label">Plano</span><span>${c.plano||'—'}</span></div>
+        <div class="aluno-detail-item"><span class="aluno-detail-label">Mensalidade</span><span style="color:#6fcf97;font-weight:600;">${fmtMoeda(c.valor||0)}</span></div>
+        <div class="aluno-detail-item" style="grid-column:1/-1;"><span class="aluno-detail-label">Dias & Horários</span><span style="font-size:.78rem;">${diasStr}</span></div>
+      </div>
+      <div class="aluno-card-actions">
+        <button class="btn btn-secondary btn-sm" data-action="ficha">📋 Ficha</button>
+        <button class="btn btn-secondary btn-sm" data-action="editar">✏️ Editar</button>
+        ${!isPago?'<button class="btn btn-whatsapp btn-sm" data-action="cobrar">💬 Cobrar</button>':''}
+        <button class="btn btn-danger btn-sm" data-action="apagar">🗑️</button>
       </div>`;
-    }).join('')}</div>`;
+    div.querySelector('[data-action="pag"]').onclick = () => togglePagamentoCard(id);
+    div.querySelector('[data-action="ficha"]').onclick = () => openClienteDetail(id);
+    div.querySelector('[data-action="editar"]').onclick = () => editCliente(id);
+    div.querySelector('[data-action="apagar"]').onclick = () => deleteCliente(id);
+    const cobrar = div.querySelector('[data-action="cobrar"]');
+    if(cobrar) cobrar.onclick = () => lembreteCobranca(id);
+    return div;
+  } catch(e){
+    const div = document.createElement('div');
+    div.className = 'aluno-card';
+    div.style.borderColor = 'rgba(220,53,69,.4)';
+    div.innerHTML = `
+      <div class="aluno-card-top">
+        <div class="aluno-avatar" style="background:#ff6b6b;">!</div>
+        <div class="aluno-card-info">
+          <div class="aluno-card-nome" style="color:#ff6b6b;">Cadastro com erro</div>
+          <div class="aluno-card-tel">ID: ${c.id||'?'}</div>
+        </div>
+      </div>
+      <div class="aluno-card-actions">
+        <button class="btn btn-secondary btn-sm" data-action="editar">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" data-action="apagar">🗑️ Apagar</button>
+      </div>`;
+    div.querySelector('[data-action="editar"]').onclick = () => editCliente(c.id||'');
+    div.querySelector('[data-action="apagar"]').onclick = () => deleteCliente(c.id||'');
+    return div;
+  }
 }
 
-
-// ── Verifica automaticamente se algum aluno deve virar Pendente (3 dias antes do venc)
-function verificarVencimentos(){
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-  let mudou = false;
-  clientes.forEach(c=>{
-    if(c.statusPag!=='pago' || !c.dataVenc) return;
-    const venc = new Date(c.dataVenc+'T12:00:00');
-    const diff = Math.ceil((venc - hoje)/(1000*60*60*24));
-    if(diff<=3){
-      c.statusPag='pendente';
-      mudou=true;
-    }
-  });
-  if(mudou){ saveAll(); }
+function renderClientes(){
+  const lista = clientesFiltrados || clientes;
+  const content = document.getElementById('page-content');
+  if(lista.length===0){
+    content.innerHTML = '<div class="card"><div class="empty-state"><div class="es-icon">👤</div><p>Nenhum aluno cadastrado ainda.<br>Clique em &quot;+ Novo Aluno&quot; para começar!</p></div></div>';
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'alunos-grid';
+  lista.forEach(c=>grid.appendChild(renderCardAluno(c)));
+  content.innerHTML = '';
+  content.appendChild(grid);
 }
 
 function togglePagamentoCard(id){
