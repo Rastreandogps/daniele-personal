@@ -330,27 +330,43 @@ canvas{width:100%!important;}
         </div>
       </div>
       <div class="form-section">
-        <h4>📅 Dias & Horário de Treino</h4>
-        <div class="checkbox-group" id="dias-treino">
-          <label class="checkbox-label" onclick="toggleCheck(this)"><input type="checkbox" value="Seg">Seg</label>
-          <label class="checkbox-label" onclick="toggleCheck(this)"><input type="checkbox" value="Ter">Ter</label>
-          <label class="checkbox-label" onclick="toggleCheck(this)"><input type="checkbox" value="Qua">Qua</label>
-          <label class="checkbox-label" onclick="toggleCheck(this)"><input type="checkbox" value="Qui">Qui</label>
-          <label class="checkbox-label" onclick="toggleCheck(this)"><input type="checkbox" value="Sex">Sex</label>
-          <label class="checkbox-label" onclick="toggleCheck(this)"><input type="checkbox" value="Sáb">Sáb</label>
-          <label class="checkbox-label" onclick="toggleCheck(this)"><input type="checkbox" value="Dom">Dom</label>
-        </div>
-        <div class="form-grid" style="margin-top:14px;">
-          <div class="form-group">
-            <label>⏰ Horário fixo de treino</label>
-            <input type="time" id="c-horario" placeholder="Ex: 07:00">
+        <h4>📅 Dias & Horários de Treino</h4>
+        <p style="font-size:.78rem;color:var(--gray-mid);margin-bottom:12px;">Marque os dias e defina o horário de cada um individualmente.</p>
+        <div id="dias-treino-grid" style="display:flex;flex-direction:column;gap:10px;">
+          <div class="dia-horario-row" data-dia="Seg">
+            <label class="checkbox-label" onclick="toggleDiaHorario(this)" style="min-width:70px;"><input type="checkbox" value="Seg">Seg</label>
+            <input type="time" class="horario-dia" id="h-Seg" disabled style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;outline:none;opacity:.35;transition:all .2s;width:130px;">
           </div>
-          <div class="form-group">
-            <label>📆 Gerar agendamentos a partir de</label>
-            <input type="date" id="c-data-inicio">
+          <div class="dia-horario-row" data-dia="Ter">
+            <label class="checkbox-label" onclick="toggleDiaHorario(this)" style="min-width:70px;"><input type="checkbox" value="Ter">Ter</label>
+            <input type="time" class="horario-dia" id="h-Ter" disabled style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;outline:none;opacity:.35;transition:all .2s;width:130px;">
+          </div>
+          <div class="dia-horario-row" data-dia="Qua">
+            <label class="checkbox-label" onclick="toggleDiaHorario(this)" style="min-width:70px;"><input type="checkbox" value="Qua">Qua</label>
+            <input type="time" class="horario-dia" id="h-Qua" disabled style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;outline:none;opacity:.35;transition:all .2s;width:130px;">
+          </div>
+          <div class="dia-horario-row" data-dia="Qui">
+            <label class="checkbox-label" onclick="toggleDiaHorario(this)" style="min-width:70px;"><input type="checkbox" value="Qui">Qui</label>
+            <input type="time" class="horario-dia" id="h-Qui" disabled style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;outline:none;opacity:.35;transition:all .2s;width:130px;">
+          </div>
+          <div class="dia-horario-row" data-dia="Sex">
+            <label class="checkbox-label" onclick="toggleDiaHorario(this)" style="min-width:70px;"><input type="checkbox" value="Sex">Sex</label>
+            <input type="time" class="horario-dia" id="h-Sex" disabled style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;outline:none;opacity:.35;transition:all .2s;width:130px;">
+          </div>
+          <div class="dia-horario-row" data-dia="Sáb">
+            <label class="checkbox-label" onclick="toggleDiaHorario(this)" style="min-width:70px;"><input type="checkbox" value="Sáb">Sáb</label>
+            <input type="time" class="horario-dia" id="h-Sáb" disabled style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;outline:none;opacity:.35;transition:all .2s;width:130px;">
+          </div>
+          <div class="dia-horario-row" data-dia="Dom">
+            <label class="checkbox-label" onclick="toggleDiaHorario(this)" style="min-width:70px;"><input type="checkbox" value="Dom">Dom</label>
+            <input type="time" class="horario-dia" id="h-Dom" disabled style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;outline:none;opacity:.35;transition:all .2s;width:130px;">
           </div>
         </div>
-        <p style="font-size:.78rem;color:var(--gray-mid);margin-top:6px;">💡 Ao salvar, os treinos serão criados automaticamente no calendário pelas próximas 4 semanas.</p>
+        <div class="form-group" style="margin-top:14px;max-width:260px;">
+          <label>📆 Gerar agendamentos a partir de</label>
+          <input type="date" id="c-data-inicio">
+        </div>
+        <p style="font-size:.78rem;color:var(--gray-mid);margin-top:8px;">💡 Os treinos serão criados automaticamente no calendário pelas próximas 4 semanas.</p>
       </div>
       <div class="form-section">
         <h4>📝 Observações</h4>
@@ -816,7 +832,7 @@ function renderClientes(){
               <td>${c.plano||'—'}</td>
               <td>${fmtMoeda(c.valor)}</td>
               <td><span class="badge ${c.statusPag==='pago'?'badge-green':'badge-red'}">${c.statusPag==='pago'?'✓ Pago':'Pendente'}</span></td>
-              <td><span style="font-size:.78rem;">${(c.dias||[]).join(', ')||'—'}</span></td>
+              <td><span style="font-size:.78rem;">${((c.diasHorarios||[]).length>0 ? c.diasHorarios.map(x=>x.hora?`${x.dia} ${x.hora}`:x.dia).join(', ') : (c.dias||[]).join(', ')) || '—'}</span></td>
               <td>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                   <button class="btn btn-secondary btn-sm" onclick="openClienteDetail('${c.id}')">📋 Ficha</button>
@@ -839,20 +855,49 @@ function searchClientes(q){
   renderClientes();
 }
 
+const diasSemana = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+function toggleDiaHorario(label){
+  setTimeout(()=>{
+    const cb = label.querySelector('input');
+    const dia = cb.value;
+    const hInput = document.getElementById('h-'+dia);
+    label.classList.toggle('checked', cb.checked);
+    if(hInput){
+      hInput.disabled = !cb.checked;
+      hInput.style.opacity = cb.checked ? '1' : '.35';
+      if(cb.checked) hInput.focus();
+    }
+  },0);
+}
+
 function clearClienteForm(){
-  ['c-nome','c-tel','c-idade','c-altura','c-peso','c-valor','c-venc','c-obs','c-horario'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['c-nome','c-tel','c-idade','c-altura','c-peso','c-valor','c-venc','c-obs'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('c-data-inicio').value=todayStr();
   document.getElementById('c-sexo').value='';
   document.getElementById('c-plano').value='';
   document.getElementById('c-status-pag').value='pendente';
-  document.querySelectorAll('#dias-treino .checkbox-label input').forEach(cb=>{ cb.checked=false; cb.parentElement.classList.remove('checked'); });
+  diasSemana.forEach(d=>{
+    const cb = document.querySelector(`#dias-treino-grid input[value="${d}"]`);
+    const hInput = document.getElementById('h-'+d);
+    if(cb){ cb.checked=false; cb.parentElement.classList.remove('checked'); }
+    if(hInput){ hInput.value=''; hInput.disabled=true; hInput.style.opacity='.35'; }
+  });
 }
 
 function saveCliente(){
   const nome = document.getElementById('c-nome').value.trim();
   if(!nome){ showToast('Nome é obrigatório!','error'); return; }
-  const dias = [...document.querySelectorAll('#dias-treino .checkbox-label input:checked')].map(cb=>cb.value);
-  const horario = document.getElementById('c-horario').value;
+  // Montar array de {dia, hora}
+  const diasHorarios = [];
+  diasSemana.forEach(d=>{
+    const cb = document.querySelector(`#dias-treino-grid input[value="${d}"]`);
+    const hInput = document.getElementById('h-'+d);
+    if(cb && cb.checked){
+      diasHorarios.push({dia:d, hora: hInput ? hInput.value : ''});
+    }
+  });
+  const dias = diasHorarios.map(x=>x.dia);
   const dataInicio = document.getElementById('c-data-inicio').value || todayStr();
   const data = {
     nome, tel:document.getElementById('c-tel').value,
@@ -865,7 +910,7 @@ function saveCliente(){
     venc:document.getElementById('c-venc').value,
     statusPag:document.getElementById('c-status-pag').value,
     obs:document.getElementById('c-obs').value,
-    horario, dias, ativo:true,
+    dias, diasHorarios, ativo:true,
   };
   const editId = document.getElementById('add-cliente-modal').dataset.editId;
   let clienteId;
@@ -881,9 +926,8 @@ function saveCliente(){
     clientes.push({id:clienteId, ...data, criadoEm:todayStr()});
     showToast('Aluno cadastrado com sucesso!');
   }
-  // Gerar agendamentos automáticos se tiver dias e horário
-  if(dias.length>0 && horario){
-    gerarAgendamentosAluno(clienteId, dias, horario, dataInicio);
+  if(diasHorarios.length>0){
+    gerarAgendamentosAluno(clienteId, diasHorarios, dataInicio);
   }
   saveAll(); closeModal('add-cliente-modal'); clearClienteForm(); renderClientes();
 }
@@ -891,7 +935,7 @@ function saveCliente(){
 // Mapa: nome do dia → número do dia da semana (0=Dom)
 const diaMap = {Dom:0,Seg:1,Ter:2,Qua:3,Qui:4,Sex:5,Sáb:6};
 
-function gerarAgendamentosAluno(clienteId, dias, horario, dataInicio){
+function gerarAgendamentosAluno(clienteId, diasHorarios, dataInicio){
   const inicio = new Date(dataInicio+'T12:00:00');
   const fim = new Date(inicio);
   fim.setDate(fim.getDate()+28); // 4 semanas
@@ -899,16 +943,19 @@ function gerarAgendamentosAluno(clienteId, dias, horario, dataInicio){
   for(let d=new Date(inicio); d<=fim; d.setDate(d.getDate()+1)){
     const diaSemana = d.getDay();
     const nomeDia = Object.keys(diaMap).find(k=>diaMap[k]===diaSemana);
-    if(!dias.includes(nomeDia)) continue;
+    const dhEntry = diasHorarios.find(x=>x.dia===nomeDia);
+    if(!dhEntry) continue;
+    const horario = dhEntry.hora;
+    if(!horario) continue;
     const dateStr = d.toISOString().split('T')[0];
-    // checar conflito
+    // checar conflito com outro aluno
     const conflito = agendamentos.find(a=>a.data===dateStr && a.hora===horario && a.clienteId!==clienteId);
     if(conflito){
       const cConf = clientes.find(x=>x.id===conflito.clienteId)||{nome:'?'};
       conflitos.push(`${fmtData(dateStr)} ${horario} — já tem ${cConf.nome}`);
       continue;
     }
-    // evitar duplicar agendamento já existente deste aluno
+    // evitar duplicar
     const jaExiste = agendamentos.find(a=>a.data===dateStr && a.hora===horario && a.clienteId===clienteId);
     if(jaExiste) continue;
     agendamentos.push({id:genId(), clienteId, data:dateStr, hora:horario, obs:'Treino fixo'});
@@ -935,9 +982,15 @@ function editCliente(id){
   document.getElementById('c-venc').value=c.venc||'';
   document.getElementById('c-status-pag').value=c.statusPag||'pendente';
   document.getElementById('c-obs').value=c.obs||'';
-  document.getElementById('c-horario').value=c.horario||'';
   document.getElementById('c-data-inicio').value=todayStr();
-  (c.dias||[]).forEach(d=>{ document.querySelectorAll('#dias-treino .checkbox-label input').forEach(cb=>{ if(cb.value===d){ cb.checked=true; cb.parentElement.classList.add('checked'); } }); });
+  // Restaurar dias e horários individuais
+  const dhs = c.diasHorarios || (c.dias||[]).map(d=>({dia:d, hora:c.horario||''}));
+  dhs.forEach(({dia,hora})=>{
+    const cb = document.querySelector(`#dias-treino-grid input[value="${dia}"]`);
+    const hInput = document.getElementById('h-'+dia);
+    if(cb){ cb.checked=true; cb.parentElement.classList.add('checked'); }
+    if(hInput){ hInput.value=hora||''; hInput.disabled=false; hInput.style.opacity='1'; }
+  });
   document.getElementById('add-cliente-modal').dataset.editId = id;
   document.getElementById('modal-title').textContent='✏️ Editar Aluno';
   openModal('add-cliente-modal');
