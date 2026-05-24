@@ -743,6 +743,34 @@ function renderDashboard(){
   const prox = agendamentos.filter(a=>a.data>=today).sort((a,b)=>a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora)).slice(0,5);
 
   document.getElementById('page-content').innerHTML = `
+  <div class="grid-2" style="margin-bottom:24px;">
+    <div class="card">
+      <div class="section-title"><h3>🏃‍♀️ Aulas de Hoje — ${fmtData(today)}</h3></div>
+      ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhuma aula agendada para hoje</p></div>':
+        agsHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>{
+          const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
+          return `<div class="upcoming-item">
+            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
+            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
+            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
+          </div>`;
+        }).join('')
+      }
+    </div>
+    <div class="card card-proximas">
+      <div class="section-title"><h3>🕐 Próximas Aulas</h3></div>
+      ${prox.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento próximo</p></div>':
+        prox.map(a=>{
+          const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
+          return `<div class="upcoming-item">
+            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">${fmtData(a.data)}</div></div>
+            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
+            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
+          </div>`;
+        }).join('')
+      }
+    </div>
+  </div>
   <div class="grid-4" style="margin-bottom:24px;">
     <div class="stat-card pink">
       <div class="stat-icon">👥</div>
@@ -763,34 +791,6 @@ function renderDashboard(){
       <div class="stat-icon">⚠️</div>
       <div class="stat-value">${inadim}</div>
       <div class="stat-label">Inadimplentes</div>
-    </div>
-  </div>
-  <div class="grid-2">
-    <div class="card card-proximas">
-      <div class="section-title"><h3>🕐 Próximas Aulas</h3></div>
-      ${prox.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento próximo</p></div>':
-        prox.map(a=>{
-          const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
-          return `<div class="upcoming-item">
-            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">${fmtData(a.data)}</div></div>
-            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
-            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
-          </div>`;
-        }).join('')
-      }
-    </div>
-    <div class="card">
-      <div class="section-title"><h3>🏃‍♀️ Aulas de Hoje — ${fmtData(today)}</h3></div>
-      ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhuma aula agendada para hoje</p></div>':
-        agsHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>{
-          const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
-          return `<div class="upcoming-item">
-            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
-            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
-            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
-          </div>`;
-        }).join('')
-      }
     </div>
   </div>`;
 }
