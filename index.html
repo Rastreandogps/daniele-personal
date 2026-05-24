@@ -803,6 +803,19 @@ function renderDashboard(){
 
   document.getElementById('page-content').innerHTML = `
   <div class="grid-2" style="margin-bottom:24px;">
+    <div class="card">
+      <div class="section-title"><h3>🏃‍♀️ Aulas de Hoje — ${fmtData(today)}</h3></div>
+      ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhuma aula agendada para hoje</p></div>':
+        agsHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>{
+          const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
+          return `<div class="upcoming-item">
+            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
+            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
+            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
+          </div>`;
+        }).join('')
+      }
+    </div>
     <div class="card card-proximas">
       <div class="section-title"><h3>🕐 Próximas Aulas</h3></div>
       ${proxPorAluno.length===0?'<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum agendamento próximo</p></div>':
@@ -818,7 +831,7 @@ function renderDashboard(){
                 <div class="acord-name">${c.nome}</div>
                 <div class="acord-sub">Próx: ${fmtData(proxAula.data)} às ${proxAula.hora} · ${totalAulas} aula${totalAulas>1?'s':''}</div>
               </div>
-              <button class="btn btn-danger btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();deleteTodosAgendamentos('${entry.clienteId}','${c.nome}')" title="Apagar todos os agendamentos">🗑️</button>
+              <button class="btn btn-danger btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();deleteTodosAgendamentos('${entry.clienteId}','${c.nome}')" title="Apagar todos">🗑️</button>
               <span class="acord-arrow" id="arrow-acord-${idx}" style="margin-left:8px;">▼</span>
             </div>
             <div class="acord-body" id="acord-${idx}">
@@ -827,23 +840,10 @@ function renderDashboard(){
                 <div class="acord-aula-time"><div class="at-h">${a.hora}</div><div class="at-d">${fmtData(a.data)}</div></div>
                 <span style="font-size:.78rem;color:var(--gray-mid);flex:1;">${a.obs||'Treino agendado'}</span>
                 <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteAgendamentoDash('${a.id}')" title="Apagar esta aula">🗑️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteAgendamentoDash('${a.id}')">🗑️</button>
               </div>`).join('')}
               ${totalAulas>10?`<div style="font-size:.75rem;color:var(--gray-mid);padding:6px 0;">+${totalAulas-10} mais aulas agendadas</div>`:''}
             </div>
-          </div>`;
-        }).join('')
-      }
-    </div>
-    <div class="card">
-      <div class="section-title"><h3>🏃‍♀️ Aulas de Hoje — ${fmtData(today)}</h3></div>
-      ${agsHoje.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhuma aula agendada para hoje</p></div>':
-        agsHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>{
-          const c = clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
-          return `<div class="upcoming-item">
-            <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
-            <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${a.obs||'Treino agendado'}</div></div>
-            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
           </div>`;
         }).join('')
       }
@@ -1425,23 +1425,30 @@ function renderCalendar(){
 function showDayAgenda(date){
   const dayAgs=agendamentos.filter(a=>a.data===date).sort((a,b)=>a.hora.localeCompare(b.hora));
   const el=document.getElementById('agenda-do-dia'); if(!el) return;
-  el.innerHTML=`<div class="section-title"><h3>📅 ${fmtData(date)}</h3><button class="btn btn-primary btn-sm" onclick="openAgendaModal('${date}')">+ Agendar</button></div>
-  ${dayAgs.length===0?'<div class="empty-state"><div class="es-icon">📭</div><p>Nenhum agendamento neste dia</p></div>':
-    `<div class="table-wrap"><table>
-      <thead><tr><th>Horário</th><th>Aluno</th><th>Obs.</th><th>Ações</th></tr></thead>
-      <tbody>${dayAgs.map(a=>{ const c=clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
-        return `<tr>
-          <td><strong>${a.hora}</strong></td>
-          <td>${c.nome}</td>
-          <td>${a.obs||'—'}</td>
-          <td><div style="display:flex;gap:6px;">
-            <button class="btn btn-secondary btn-sm" onclick="editAgendamento('${a.id}')">✏️</button>
-            <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteAgendamento('${a.id}','${date}')">🗑️</button>
-          </div></td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div>`
+  el.innerHTML=`
+  <div class="section-title" style="flex-wrap:wrap;gap:8px;">
+    <h3>\uD83D\uDCC5 ${fmtData(date)}</h3>
+    <button class="btn btn-primary btn-sm" onclick="openAgendaModal('${date}')">+ Agendar</button>
+  </div>
+  ${dayAgs.length===0
+    ?'<div class="empty-state"><div class="es-icon">\uD83D\uDCED</div><p>Nenhum agendamento neste dia</p></div>'
+    :dayAgs.map(a=>{
+        const c=clientes.find(x=>x.id===a.clienteId)||{nome:'?'};
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+          <div style="background:rgba(217,58,138,.15);border:1px solid var(--border);border-radius:8px;padding:6px 10px;text-align:center;min-width:52px;flex-shrink:0;">
+            <div style="font-size:.85rem;font-weight:700;color:var(--pink-light);">${a.hora}</div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nome}</div>
+            <div style="font-size:.75rem;color:var(--gray-mid);">${a.obs||'Treino agendado'}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn btn-secondary btn-sm" onclick="editAgendamento('${a.id}')">\u270F\uFE0F</button>
+            <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>\uD83D\uDCF1</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAgendamento('${a.id}','${date}')">\uD83D\uDDD1\uFE0F</button>
+          </div>
+        </div>`;
+      }).join('')
   }`;
 }
 function openAgendaModal(date=''){
