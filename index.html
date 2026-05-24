@@ -910,6 +910,7 @@ function renderClientes(){
         ? c.diasHorarios.map(x=>x.hora?`${x.dia} ${x.hora}`:x.dia).join(' · ')
         : (c.dias||[]).join(' · ')) || '—';
       const inicial = c.nome.charAt(0).toUpperCase();
+      const isPago = c.statusPag==='pago';
       return `<div class="aluno-card">
         <div class="aluno-card-top">
           <div class="aluno-avatar">${inicial}</div>
@@ -917,7 +918,12 @@ function renderClientes(){
             <div class="aluno-card-nome">${c.nome}</div>
             <div class="aluno-card-tel">${c.tel||'—'}</div>
           </div>
-          <span class="badge ${c.statusPag==='pago'?'badge-green':'badge-red'}" style="margin-left:auto;flex-shrink:0;">${c.statusPag==='pago'?'✓ Pago':'Pendente'}</span>
+          <div style="margin-left:auto;flex-shrink:0;text-align:center;">
+            <div style="font-size:.62rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Pagamento</div>
+            <button class="badge ${isPago?'badge-green':'badge-red'}" style="cursor:pointer;border:none;font-size:.78rem;padding:5px 12px;border-radius:20px;font-family:'DM Sans',sans-serif;font-weight:600;" onclick="togglePagamentoCard('${c.id}')">
+              ${isPago?'✓ Pago':'⏳ Pendente'}
+            </button>
+          </div>
         </div>
         <div class="aluno-card-details">
           <div class="aluno-detail-item"><span class="aluno-detail-label">Plano</span><span>${c.plano||'—'}</span></div>
@@ -927,10 +933,47 @@ function renderClientes(){
         <div class="aluno-card-actions">
           <button class="btn btn-secondary btn-sm" onclick="openClienteDetail('${c.id}')">📋 Ficha</button>
           <button class="btn btn-secondary btn-sm" onclick="editCliente('${c.id}')">✏️ Editar</button>
+          <button class="btn btn-whatsapp btn-sm" onclick="lembreteCobranca('${c.id}')" title="Lembrete de mensalidade">💬 Cobrar</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')">🗑️</button>
         </div>
       </div>`;
     }).join('')}</div>`;
+}
+
+
+function togglePagamentoCard(id){
+  const c = clientes.find(x=>x.id===id); if(!c) return;
+  const novoStatus = c.statusPag==='pago' ? 'pendente' : 'pago';
+  if(novoStatus==='pago'){
+    if(!financeiro[id]) financeiro[id]=[];
+    const mesAtual = todayStr().slice(0,7);
+    const jaTemNesteMes = financeiro[id].some(p=>p.data && p.data.slice(0,7)===mesAtual && p.desc==='Mensalidade');
+    if(!jaTemNesteMes) financeiro[id].push({data:todayStr(),desc:'Mensalidade',valor:c.valor});
+  }
+  c.statusPag = novoStatus;
+  saveAll(); renderClientes();
+  showToast(novoStatus==='pago'?`✅ ${c.nome} marcado como pago!`:`⏳ ${c.nome} marcado como pendente.`);
+}
+
+function lembreteCobranca(id){
+  const c = clientes.find(x=>x.id===id); if(!c) return;
+  if(!c.tel){ showToast('Este aluno não tem telefone cadastrado!','error'); return; }
+  const tel = c.tel.replace(/\D/g,'');
+  const msg = encodeURIComponent(
+`Olá, ${c.nome}! 😊💪
+
+Tudo bem? Passando para te lembrar que sua mensalidade está chegando para renovação! 🗓️✨
+
+Manter a consistência nos treinos é o segredo para alcançar seus objetivos — e você está indo muito bem! 🏋️‍♀️🔥
+
+Valor: ${fmtMoeda(c.valor)}
+Plano: ${c.plano||'Personal Training'}
+
+Assim que puder, confirma a renovação para garantirmos a continuidade dos seus treinos sem interrupção! 🚀
+
+Qualquer dúvida, estou à disposição. Te espero na academia! 💕`
+  );
+  window.open(`https://wa.me/55${tel}?text=${msg}`,'_blank');
 }
 
 
