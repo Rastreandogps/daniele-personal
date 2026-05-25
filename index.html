@@ -1302,25 +1302,24 @@ function saveCliente(){
   if(editId){
     const idx = clientes.findIndex(c=>c.id===editId);
     const clienteAntigo = clientes[idx];
-    // Detecta se os dias/horários mudaram comparando arrays ordenados
-    const diasAntigosStr = JSON.stringify((clienteAntigo.diasHorarios||[]).map(x=>x.dia+'|'+x.hora).sort());
-    const diasNovosStr   = JSON.stringify(diasHorarios.map(x=>x.dia+'|'+x.hora).sort());
-    const diasMudaram = diasAntigosStr !== diasNovosStr;
     clientes[idx] = {...clienteAntigo, ...data};
     clienteId = editId;
     delete document.getElementById('add-cliente-modal').dataset.editId;
     document.getElementById('modal-title').textContent='➕ Novo Aluno';
-    if(diasMudaram && diasHorarios.length > 0){
-      // Remove todos os agendamentos FUTUROS (a partir de hoje) deste aluno
-      // Mantém os passados para não perder histórico de frequência
-      const hoje = todayStr();
-      const removidos = agendamentos.filter(a => a.clienteId === clienteId && a.data >= hoje).length;
-      agendamentos = agendamentos.filter(a => !(a.clienteId === clienteId && a.data >= hoje));
-      // Recria com os novos dias/horários a partir de hoje
+    // SEMPRE apaga todos os agendamentos futuros e recria com os dias atuais do cadastro
+    // Isso garante que o cadastro é sempre a fonte da verdade
+    const hoje = todayStr();
+    const removidos = agendamentos.filter(a => a.clienteId === clienteId && a.data >= hoje).length;
+    agendamentos = agendamentos.filter(a => !(a.clienteId === clienteId && a.data >= hoje));
+    if(diasHorarios.length > 0){
       gerarAgendamentosAluno(clienteId, diasHorarios, hoje);
-      showToast('✅ Cadastro atualizado! ' + removidos + ' aula(s) antiga(s) substituída(s).');
+      if(removidos > 0){
+        showToast('✅ Cadastro atualizado! ' + removidos + ' aula(s) antiga(s) substituída(s).');
+      } else {
+        showToast('✅ Cadastro atualizado! Agendamentos gerados.');
+      }
     } else {
-      showToast('Aluno atualizado com sucesso!');
+      showToast('Aluno atualizado. Nenhum dia de treino definido.');
     }
   } else {
     clienteId = genId();
