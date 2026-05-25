@@ -802,10 +802,13 @@ function selecionarFreqModal(status){
 
 
 function abrirAvisoGrupo(){
-  // Sugerir amanhã como data padrão
   const amanha = new Date();
   amanha.setDate(amanha.getDate()+1);
-  document.getElementById('aviso-data').value = amanha.toISOString().split('T')[0];
+  // ✅ CORRIGIDO: usar data local
+  const y = amanha.getFullYear();
+  const m = String(amanha.getMonth()+1).padStart(2,'0');
+  const d = String(amanha.getDate()).padStart(2,'0');
+  document.getElementById('aviso-data').value = `${y}-${m}-${d}`;
   previewAvisoGrupo();
   openModal('aviso-grupo-modal');
 }
@@ -869,7 +872,6 @@ function confirmarReset(){
     document.getElementById('reset-senha').focus();
     return;
   }
-  // Apagar tudo
   clientes = [];
   agendamentos = [];
   financeiro = {};
@@ -955,7 +957,17 @@ function switchTab(prefix, name, btn){
 }
 function fmtMoeda(v){ return 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
 function fmtData(d){ if(!d) return '-'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
-function todayStr(){ return new Date().toISOString().split('T')[0]; }
+
+// ✅ CORREÇÃO PRINCIPAL: usar data LOCAL do dispositivo, não UTC
+// O problema era que toISOString() converte para UTC antes de formatar.
+// No Brasil (UTC-3), às 21h do dia 24, o UTC já é 00h do dia 25.
+// Resultado: o sistema mostrava agendamentos do dia 25 como "Aulas de Hoje".
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 
 // ═══════════════════════════════
 // DASHBOARD
@@ -966,9 +978,7 @@ function renderDashboard(){
   const inadim = clientes.filter(c=>c.statusPag==='pendente').length;
   const agsHoje = agendamentos.filter(a=>a.data===today);
   const receitaMes = clientes.filter(c=>c.statusPag==='pago').reduce((s,c)=>s+parseFloat(c.valor||0),0);
-  // Só agendamentos de AMANHÃ em diante (hoje fica no bloco "Aulas de Hoje")
   const proxAll = agendamentos.filter(a=>a.data>today).sort((a,b)=>a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora));
-  // Agrupar por aluno
   const proxPorAluno = [];
   proxAll.forEach(a=>{
     const entry = proxPorAluno.find(x=>x.clienteId===a.clienteId);
@@ -1168,7 +1178,6 @@ function renderClientes(){
 function togglePagamentoCard(id){
   const c = clientes.find(x=>x.id===id); if(!c) return;
 
-  // ── Está PAGO → voltar para Pendente (com confirmação)
   if(c.statusPag==='pago'){
     if(!confirm(`⚠️ Deseja marcar ${c.nome} como PENDENTE?\n\nIsso irá cancelar o controle de vencimento atual.`)) return;
     c.statusPag='pendente';
@@ -1178,23 +1187,21 @@ function togglePagamentoCard(id){
     return;
   }
 
-  // ── Está PENDENTE → marcar como Pago
   const diaVenc = parseInt(c.venc)||10;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
-  // Próximo vencimento = próxima ocorrência do diaVenc a partir de amanhã
   let proxVenc = new Date(hoje.getFullYear(), hoje.getMonth(), diaVenc);
   proxVenc.setHours(0,0,0,0);
-  // Se o dia de vencimento deste mês já passou ou é hoje, vai para o mês seguinte
   if(proxVenc <= hoje){
     proxVenc = new Date(hoje.getFullYear(), hoje.getMonth()+1, diaVenc);
   }
-  const dataVenc = proxVenc.toISOString().split('T')[0];
+  // ✅ CORRIGIDO: usar data local
+  const pv = proxVenc;
+  const dataVenc = pv.getFullYear()+'-'+String(pv.getMonth()+1).padStart(2,'0')+'-'+String(pv.getDate()).padStart(2,'0');
 
   c.statusPag='pago';
   c.dataVenc=dataVenc;
 
-  // Registrar no histórico financeiro
   if(!financeiro[id]) financeiro[id]=[];
   const mesAtual = todayStr().slice(0,7);
   const jaTemNesteMes = financeiro[id].some(p=>p.data && p.data.slice(0,7)===mesAtual && p.desc==='Mensalidade');
@@ -1267,7 +1274,6 @@ function clearClienteForm(){
 function saveCliente(){
   const nome = document.getElementById('c-nome').value.trim();
   if(!nome){ showToast('Nome é obrigatório!','error'); return; }
-  // Montar array de {dia, hora}
   const diasHorarios = [];
   diasSemana.forEach(d=>{
     const cb = document.querySelector(`#dias-treino-grid input[value="${d}"]`);
@@ -1311,13 +1317,12 @@ function saveCliente(){
   saveAll(); closeModal('add-cliente-modal'); clearClienteForm(); renderClientes();
 }
 
-// Mapa: nome do dia → número do dia da semana (0=Dom)
 const diaMap = {Dom:0,Seg:1,Ter:2,Qua:3,Qui:4,Sex:5,Sáb:6};
 
 function gerarAgendamentosAluno(clienteId, diasHorarios, dataInicio){
   const inicio = new Date(dataInicio+'T12:00:00');
   const fim = new Date(inicio);
-  fim.setDate(fim.getDate()+28); // 4 semanas
+  fim.setDate(fim.getDate()+28);
   let criados=0, conflitos=[];
   for(let d=new Date(inicio); d<=fim; d.setDate(d.getDate()+1)){
     const diaSemana = d.getDay();
@@ -1326,15 +1331,14 @@ function gerarAgendamentosAluno(clienteId, diasHorarios, dataInicio){
     if(!dhEntry) continue;
     const horario = dhEntry.hora;
     if(!horario) continue;
-    const dateStr = d.toISOString().split('T')[0];
-    // checar conflito com outro aluno
+    // ✅ CORRIGIDO: usar data local
+    const dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const conflito = agendamentos.find(a=>a.data===dateStr && a.hora===horario && a.clienteId!==clienteId);
     if(conflito){
       const cConf = clientes.find(x=>x.id===conflito.clienteId)||{nome:'?'};
       conflitos.push(`${fmtData(dateStr)} ${horario} — já tem ${cConf.nome}`);
       continue;
     }
-    // evitar duplicar
     const jaExiste = agendamentos.find(a=>a.data===dateStr && a.hora===horario && a.clienteId===clienteId);
     if(jaExiste) continue;
     agendamentos.push({id:genId(), clienteId, data:dateStr, hora:horario, obs:'Treino fixo'});
@@ -1362,7 +1366,6 @@ function editCliente(id){
   document.getElementById('c-status-pag').value=c.statusPag||'pendente';
   document.getElementById('c-obs').value=c.obs||'';
   document.getElementById('c-data-inicio').value=todayStr();
-  // Restaurar dias e horários individuais
   const dhs = c.diasHorarios || (c.dias||[]).map(d=>({dia:d, hora:c.horario||''}));
   dhs.forEach(({dia,hora})=>{
     const cb = document.querySelector(`#dias-treino-grid input[value="${dia}"]`);
@@ -1390,10 +1393,8 @@ function openClienteDetail(id){
   currentClienteId = id;
   const c = clientes.find(x=>x.id===id); if(!c) return;
   document.getElementById('cd-title').textContent='👤 '+c.nome;
-  // reset tabs
   document.querySelectorAll('#cliente-detail-modal .tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
   document.querySelectorAll('#cliente-detail-modal .tab-content').forEach((tc,i)=>tc.classList.toggle('active',i===0));
-  // load anamnese
   const an = c.anamnese||{};
   document.getElementById('a-medicamentos').value=an.medicamentos||'nao';
   document.getElementById('a-med-desc').value=an['med-desc']||'';
@@ -1405,11 +1406,8 @@ function openClienteDetail(id){
   document.getElementById('a-dor-local').value=an['dor-local']||'';
   document.getElementById('a-dor-freq').value=an['dor-freq']||'';
   document.getElementById('a-objetivo').value=an.objetivo||'';
-  // checkboxes objetivos
   document.querySelectorAll('input[name="a-obj"]').forEach(cb=>{ cb.checked=(an.objetivos||[]).includes(cb.value); cb.parentElement.classList.toggle('checked',cb.checked); });
-  // mostrar/ocultar campos condicionais
   toggleMedDesc(); toggleAlergiaDesc(); toggleCardioDesc(); toggleDorDesc();
-  // load medidas
   const med = c.medidas||{};
   document.getElementById('m-data').value=med.data||todayStr();
   document.getElementById('m-idade').value=med.idade||c.idade||'';
@@ -1417,12 +1415,10 @@ function openClienteDetail(id){
    'biceps-d','anteb-d','biceps-e','anteb-e','coxa-d','pant-d','coxa-e','pant-e'].forEach(f=>{ const el=document.getElementById('m-'+f); if(el) el.value=med[f]||''; });
   ['triceps','supra','subsca','abd','axila','peitoral','coxa'].forEach(f=>{ const el=document.getElementById('d-'+f); if(el) el.value=med['d_'+f]||''; });
   calcIMC(); calcGordura7();
-  // evolução
   document.getElementById('ev-data').value=todayStr();
   document.getElementById('ev-peso').value='';
   document.getElementById('ev-gordura').value='';
   document.getElementById('ev-obs').value='';
-  // photos
   renderPhotoGallery(id);
   openModal('cliente-detail-modal');
 }
@@ -1481,7 +1477,6 @@ function calcGordura7(){
   const age = parseFloat(document.getElementById('m-idade').value) || parseFloat(c?.idade) || 25;
   const isF = !c || c.sexo!=='Masculino';
   let density, gordura;
-  // Pollock 7 dobras
   if(isF){ density = 1.097 - (0.00046971*soma) + (0.00000056*soma*soma) - (0.00012828*age); }
   else    { density = 1.112  - (0.00043499*soma) + (0.00000055*soma*soma) - (0.00028826*age); }
   gordura = ((4.95/density)-4.50)*100;
@@ -1514,7 +1509,6 @@ function saveMedidas(){
   c.medidas = { data: document.getElementById('m-data').value, idade: document.getElementById('m-idade').value };
   campos.forEach(f=>{ const el=document.getElementById('m-'+f); if(el) c.medidas[f]=el.value; });
   dobras.forEach(f=>{ const el=document.getElementById('d-'+f); if(el) c.medidas['d_'+f]=el.value; });
-  // salvar % gordura e IMC calculados
   const gEl=document.getElementById('gordura-val');
   const imcEl=document.getElementById('m-imc');
   if(gEl && gEl.textContent!=='—') c.medidas.percentualGordura=gEl.textContent;
@@ -1647,7 +1641,6 @@ function marcarPago(id){
   if(c.statusPag==='pago'){ showToast('Mensalidade já está marcada como paga!','error'); return; }
   c.statusPag='pago';
   if(!financeiro[id]) financeiro[id]=[];
-  // Evitar duplicar: só adiciona se não há registro de pagamento no mês atual
   const mesAtual = todayStr().slice(0,7);
   const jaTemNesteMes = financeiro[id].some(p=>p.data && p.data.slice(0,7)===mesAtual && p.desc==='Mensalidade');
   if(!jaTemNesteMes){
@@ -1768,7 +1761,6 @@ function saveAgendamento(){
   const data=document.getElementById('ag-data').value;
   const hora=document.getElementById('ag-hora').value;
   if(!cid||!data||!hora){ showToast('Preencha todos os campos!','error'); return; }
-  // Verificar conflito de horário
   const conflito = agendamentos.find(a=>a.data===data && a.hora===hora && a.clienteId!==cid && a.id!==editingAgendId);
   if(conflito){
     const cConf = clientes.find(x=>x.id===conflito.clienteId)||{nome:'?'};
@@ -1864,7 +1856,6 @@ function togglePagamento(id,status){
 // ═══════════════════════════════
 // FREQUÊNCIA
 // ═══════════════════════════════
-// Config global de status de frequência
 const freqConfig = {
   concluida:  {label:'Concluída',          emoji:'✅', cls:'badge-green',  cor:'#6fcf97'},
   fj:         {label:'Falta Justificada',  emoji:'📋', cls:'badge-yellow', cor:'#ffd700'},
@@ -1879,13 +1870,12 @@ function setFreq(key, status, motivo=''){
 }
 
 function pedirMotivo(key, status){
-  // Concluída e Reposição não precisam de motivo
   if(status==='concluida' || status==='reposicao'){
     setFreq(key, status); return;
   }
   const label = status==='fj'?'Falta Justificada':'Falta Injustificada';
   const motivo = prompt(`📝 ${label}\n\nQual o motivo? (obrigatório)`);
-  if(motivo===null) return; // cancelou
+  if(motivo===null) return;
   if(!motivo.trim()){ alert('Por favor informe o motivo.'); return; }
   setFreq(key, status, motivo.trim());
 }
@@ -1936,17 +1926,16 @@ function renderFaltas(){
     ${clientes.length===0
       ?'<div class="empty-state"><div class="es-icon">👥</div><p>Nenhum aluno cadastrado</p></div>'
       :clientes.map((c,cidx)=>{
-          // Ciclo de 30 dias a partir do dia de vencimento
           const diaVenc = parseInt(c.venc)||1;
           const hoje = new Date(); hoje.setHours(0,0,0,0);
           let inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), diaVenc);
           inicioMes.setHours(0,0,0,0);
           if(inicioMes > hoje) inicioMes = new Date(hoje.getFullYear(), hoje.getMonth()-1, diaVenc);
           const fimMes = new Date(inicioMes); fimMes.setDate(fimMes.getDate()+30);
-          const inicioStr = inicioMes.toISOString().split('T')[0];
-          const fimStr = fimMes.toISOString().split('T')[0];
+          // ✅ CORRIGIDO: usar data local
+          const inicioStr = inicioMes.getFullYear()+'-'+String(inicioMes.getMonth()+1).padStart(2,'0')+'-'+String(inicioMes.getDate()).padStart(2,'0');
+          const fimStr = fimMes.getFullYear()+'-'+String(fimMes.getMonth()+1).padStart(2,'0')+'-'+String(fimMes.getDate()).padStart(2,'0');
 
-          // Agendamentos do ciclo
           const agsCiclo = agendamentos
             .filter(a=>a.clienteId===c.id && a.data>=inicioStr && a.data<=fimStr)
             .sort((a,b)=>a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora));
@@ -2045,13 +2034,12 @@ function renderPacotes(){
   </div>`;
 }
 
-// Event listeners IMC — adicionados dinamicamente pois os inputs ficam no modal
+// Event listeners IMC
 document.addEventListener('input', e => {
   if(e.target.id==='m-peso' || e.target.id==='m-altura') calcIMC();
 });
 
 // Verificar vencimentos ao abrir o app
-// Verifica automaticamente se algum aluno deve virar Pendente (3 dias antes do venc)
 function verificarVencimentos(){
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   let mudou = false;
@@ -2065,8 +2053,6 @@ function verificarVencimentos(){
 }
 
 verificarVencimentos();
-
-// Inicializar direto no dashboard
 navigate('dashboard');
 </script>
 </body>
