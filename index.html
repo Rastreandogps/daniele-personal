@@ -821,10 +821,25 @@ function getProximosDiasUteis(quantDias = 14){
 
 function calcularDisponibilidade(){
   const dias = getProximosDiasUteis(14);
+  // Monta o set de slots bloqueados por data
+  // Regra: horário quebrado (ex: 10:30) bloqueia a hora anterior (10:00) E a hora seguinte (11:00)
+  // pois ambas ficam sem espaço para uma aula completa de 1h
   const ocupados = {};
   agendamentos.forEach(a => {
     if(!ocupados[a.data]) ocupados[a.data] = new Set();
-    ocupados[a.data].add(a.hora);
+    const [hStr, mStr] = (a.hora || '00:00').split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if(m === 0){
+      // Horário exato: bloqueia só o próprio slot
+      ocupados[a.data].add(String(h).padStart(2,'0') + ':00');
+    } else {
+      // Horário quebrado: bloqueia a hora cheia anterior (piso) e a seguinte (teto)
+      // Ex: 10:30 → bloqueia 10:00 e 11:00
+      // Ex: 10:05 → bloqueia 10:00 e 11:00
+      ocupados[a.data].add(String(h).padStart(2,'0') + ':00');       // hora do piso (ex: 10:00)
+      ocupados[a.data].add(String(h + 1).padStart(2,'0') + ':00');   // hora do teto (ex: 11:00)
+    }
   });
   return dias.map(({ str, diaSem, nomeCompleto }) => {
     const grade = GRADE_TRABALHO[diaSem];
