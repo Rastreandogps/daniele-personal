@@ -1001,7 +1001,7 @@ function renderDashboard(){
           return `<div class="upcoming-item">
             <div class="up-time"><div class="uth">${a.hora||'--'}</div><div class="utm">Hoje</div></div>
             <div class="up-info"><div class="up-name">${c.nome}</div><div class="up-plan">${nomeDiaSemana(a.data)}</div></div>
-            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱 WA</button>
+            <button class="btn btn-whatsapp btn-sm" style="margin-left:auto;" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)},${JSON.stringify(c.tel||'')})'>📱 WA</button>
           </div>`;
         }).join('')
       }
@@ -1032,7 +1032,7 @@ function renderDashboard(){
               <div class="acord-aula">
                 <div class="acord-aula-time"><div class="at-h">${a.hora}</div><div class="at-d" style="white-space:nowrap;">${nomeDiaSemana(a.data).slice(0,3)}, ${fmtData(a.data)}</div></div>
                 <span style="font-size:.78rem;color:var(--pink-light);flex:1;font-weight:500;">${nomeDiaSemana(a.data)}</span>
-                <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>📱</button>
+                <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)},${JSON.stringify(c.tel||'')})'>📱</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteAgendamentoDash('${a.id}')">🗑️</button>
               </div>`).join('')}
               ${totalAulas>10?`<div style="font-size:.75rem;color:var(--gray-mid);padding:6px 0;">+${totalAulas-10} mais aulas agendadas</div>`:''}
@@ -1730,7 +1730,7 @@ function showDayAgenda(date){
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;">
             <button class="btn btn-secondary btn-sm" onclick="editAgendamento('${a.id}')">\u270F\uFE0F</button>
-            <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)})'>\uD83D\uDCF1</button>
+            <button class="btn btn-whatsapp btn-sm" onclick='shareWhatsApp(${JSON.stringify(c.nome)},${JSON.stringify(a.data)},${JSON.stringify(a.hora)},${JSON.stringify(c.tel||'')})'>\uD83D\uDCF1</button>
             <button class="btn btn-danger btn-sm" onclick="deleteAgendamento('${a.id}','${date}')">\uD83D\uDDD1\uFE0F</button>
           </div>
         </div>`;
@@ -1786,12 +1786,15 @@ function deleteAgendamento(id,date){
 // ═══════════════════════════════
 // WHATSAPP
 // ═══════════════════════════════
-function shareWhatsApp(nome,data,hora){
+function shareWhatsApp(nome,data,hora,tel){
   const dias=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
   const [y,m,d] = data.split('-').map(Number);
   const diaSemana = dias[new Date(y,m-1,d).getDay()];
   const msg=encodeURIComponent(`Olá, ${nome}! 🏋️‍♀️🔥\n\nSua aula está agendada para:\n📅 Data: ${fmtData(data)} (${diaSemana})\n🕒 Horário: ${hora}\n\nNão esqueça do seu compromisso com o seu objetivo! 💪✨\n\nCaso não consiga comparecer, avise com pelo menos 2 horas de antecedência para não perder sua aula.\n\nTe espero no treino! 🚀`);
-  window.open(`https://wa.me/?text=${msg}`,'_blank');
+  // Se tem telefone cadastrado, manda direto; senão abre sem número
+  const telLimpo = tel ? tel.replace(/\D/g,'') : '';
+  const url = telLimpo ? `https://wa.me/55${telLimpo}?text=${msg}` : `https://wa.me/?text=${msg}`;
+  window.open(url,'_blank');
 }
 
 // ═══════════════════════════════
