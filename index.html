@@ -198,12 +198,10 @@ canvas{width:100%!important;}
 .acord-aula-time .at-h{font-size:.78rem;font-weight:700;color:var(--pink-light);}
 .acord-aula-time .at-d{font-size:.6rem;color:var(--gray-mid);}
 
-/* ── HORÁRIOS DISPONÍVEIS (NOVO) ── */
+/* ── HORÁRIOS DISPONÍVEIS ── */
 .disp-card{background:var(--card);border:1px solid rgba(111,207,151,0.25);border-radius:var(--radius);padding:20px;box-shadow:0 4px 24px rgba(111,207,151,0.08);}
 .disp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
 .disp-header h3{font-size:1.05rem;color:var(--white);}
-.disp-grade-info{font-size:.72rem;color:var(--gray-mid);margin-bottom:14px;display:flex;gap:12px;flex-wrap:wrap;}
-.disp-grade-info span{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;}
 .disp-legend{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
 .disp-legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--gray-mid);}
 .disp-legend-dot{width:10px;height:10px;border-radius:3px;}
@@ -216,7 +214,6 @@ canvas{width:100%!important;}
 .disp-slot{font-size:.75rem;padding:4px 9px;border-radius:6px;font-family:'DM Sans',sans-serif;font-weight:600;}
 .disp-slot.livre{background:rgba(111,207,151,.15);color:#6fcf97;border:1px solid rgba(111,207,151,.3);}
 .disp-slot.ocupado{background:rgba(140,140,140,.08);color:rgba(140,140,140,.4);border:1px solid rgba(140,140,140,.1);text-decoration:line-through;}
-.disp-sem-vaga{font-size:.78rem;color:rgba(140,140,140,.5);font-style:italic;padding:6px 0;}
 .disp-resumo{background:rgba(111,207,151,.08);border:1px solid rgba(111,207,151,.2);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .disp-resumo-num{font-size:1.6rem;font-weight:700;color:#6fcf97;font-family:'Playfair Display',serif;}
 .disp-resumo-label{font-size:.78rem;color:var(--gray-mid);}
@@ -620,6 +617,8 @@ let frequencia = load(STORAGE_KEYS.frequencia, {});
 let currentClienteId = null;
 let editingAgendId = null;
 let evolucaoChartInstance = null;
+// Rastreia a página atual para saber se deve navegar ou só atualizar
+let currentPage = 'dashboard';
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
@@ -729,6 +728,7 @@ const pages = { dashboard: renderDashboard, clientes: renderClientes, agenda: re
 const pageTitles = { dashboard:'Painel',clientes:'Alunos',agenda:'Agenda',financeiro:'Financeiro',faltas:'Frequência',pacotes:'Pacotes' };
 
 function navigate(page) {
+  currentPage = page;
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const navItems = document.querySelectorAll('.nav-item');
   const names = ['dashboard','clientes','agenda','financeiro','faltas','pacotes'];
@@ -784,10 +784,6 @@ function todayStr(){
 // ═══════════════════════════════
 // HORÁRIOS DISPONÍVEIS — LÓGICA
 // ═══════════════════════════════
-
-// Grade de trabalho da Daniele:
-// Seg a Qui: 06:00 até 20:00 (slots: 06,07,...,19 = 14 slots)
-// Sexta:     06:00 até 12:00 (slots: 06,07,...,11 = 6 slots)
 const GRADE_TRABALHO = {
   'Seg': { inicioH: 6, fimH: 20 },
   'Ter': { inicioH: 6, fimH: 20 },
@@ -870,6 +866,7 @@ function toggleMostrarTodosDisp(){
 }
 
 function renderBlocoDisponibilidade(){
+  // Recalcula sempre do zero — lê direto de `agendamentos` que já está atualizado
   const disp = calcularDisponibilidade();
   const diasParaMostrar = dispMostrandoTodos ? disp : disp.slice(0, 5);
   const totalLivres = disp.reduce((s, d) => s + d.livres.length, 0);
@@ -1183,25 +1180,59 @@ function saveCliente(){
   const data = { nome, tel:document.getElementById('c-tel').value, idade:document.getElementById('c-idade').value, sexo:document.getElementById('c-sexo').value, altura:document.getElementById('c-altura').value, peso:document.getElementById('c-peso').value, valor:document.getElementById('c-valor').value, plano:document.getElementById('c-plano').value, venc:document.getElementById('c-venc').value, statusPag:document.getElementById('c-status-pag').value, obs:document.getElementById('c-obs').value, dias, diasHorarios, ativo:true };
   const editId = document.getElementById('add-cliente-modal').dataset.editId;
   let clienteId;
+
   if(editId){
+    // ── EDIÇÃO ──────────────────────────────────────────────────────────
     const idx = clientes.findIndex(c=>c.id===editId);
     const clienteAntigo = clientes[idx];
     clientes[idx] = {...clienteAntigo, ...data};
     clienteId = editId;
     delete document.getElementById('add-cliente-modal').dataset.editId;
     document.getElementById('modal-title').textContent='➕ Novo Aluno';
+
     const hoje = todayStr();
+    // FIX: usa a data do formulário (não hardcoded 'hoje') para gerar novos agendamentos
+    const dataInicioEdicao = dataInicio;
     const removidos = agendamentos.filter(a => a.clienteId === clienteId && a.data >= hoje).length;
+    // Remove agendamentos futuros do aluno editado
     agendamentos = agendamentos.filter(a => !(a.clienteId === clienteId && a.data >= hoje));
-    if(diasHorarios.length > 0){ gerarAgendamentosAluno(clienteId, diasHorarios, hoje); if(removidos > 0){ showToast('✅ Cadastro atualizado! ' + removidos + ' aula(s) antiga(s) substituída(s).'); } else { showToast('✅ Cadastro atualizado! Agendamentos gerados.'); } }
-    else { showToast('Aluno atualizado. Nenhum dia de treino definido.'); }
+
+    if(diasHorarios.length > 0){
+      gerarAgendamentosAluno(clienteId, diasHorarios, dataInicioEdicao);
+      if(removidos > 0){
+        showToast('✅ Cadastro atualizado! ' + removidos + ' aula(s) antiga(s) substituída(s).');
+      } else {
+        showToast('✅ Cadastro atualizado! Agendamentos gerados.');
+      }
+    } else {
+      showToast('Aluno atualizado. Nenhum dia de treino definido.');
+    }
+
+    saveAll();
+    closeModal('add-cliente-modal');
+    clearClienteForm();
+
+    // FIX: após editar, volta ao dashboard para mostrar disponibilidade atualizada
+    // Se já estava no dashboard, re-renderiza; se estava em clientes, volta p/ clientes
+    if(currentPage === 'dashboard'){
+      renderDashboard();
+    } else if(currentPage === 'clientes'){
+      renderClientes();
+    } else {
+      navigate('dashboard');
+    }
+
   } else {
+    // ── NOVO CADASTRO ────────────────────────────────────────────────────
     clienteId = genId();
     clientes.push({id:clienteId, ...data, criadoEm:todayStr()});
     if(diasHorarios.length>0){ gerarAgendamentosAluno(clienteId, diasHorarios, dataInicio); }
     showToast('Aluno cadastrado com sucesso!');
+    saveAll();
+    closeModal('add-cliente-modal');
+    clearClienteForm();
+    renderClientes();
   }
-  saveAll(); closeModal('add-cliente-modal'); clearClienteForm(); renderClientes();
 }
 
 const diaMap = {Dom:0,Seg:1,Ter:2,Qua:3,Qui:4,Sex:5,Sáb:6};
